@@ -29,7 +29,54 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const classCollection = client.db("Assignment12").collection("AllClass");
-
+    //admin dashboard route here
+    app.get('/dashboard/admin/manageClass',async(req,res)=>{
+      const result=await classCollection.find().toArray()
+      res.send(result)
+    })
+    app.put('/dashboard/admin/manageClass/:id',async(req,res)=>{
+      const id=req.params.id
+      const filter={_id:new ObjectId(id)}
+      const getClass=await classCollection.findOne(filter)
+      const updateDoc={
+        $set:{
+          status:'approved'
+        }
+      }
+      getClass.status="approved"
+      const result=await classCollection.updateOne(filter,updateDoc)
+      res.send(result)
+    })
+    app.put('/dashboard/admin/manageClass/denied/:id',async(req,res)=>{
+      const id=req.params.id
+      const filter={_id:new ObjectId(id)}
+      const getClass=await classCollection.findOne(filter)
+      const updateDoc={
+        $set:{
+          status:'denied'
+        }
+      }
+      getClass.status="denied"
+      const result=await classCollection.updateOne(filter,updateDoc)
+      res.send(result)
+    })
+    //admin feedback api
+    app.put('/dashboard/admin/feedback/:id',async(req,res)=>{
+      const data=req.body
+      const id=req.params.id
+      const filter={_id:new ObjectId(id)}
+      const updateDoc={
+        $set:{
+          feedback:data.feedback
+        }
+      }
+      const result=await classCollection.updateOne(filter,updateDoc)
+      res.send(result)
+    })
+    //admin user management
+    app.get('/dashboard/admin/manageUser',async(req,res)=>{
+    })
+    // instructor dashboard route here
     app.post('/dashboard/instructor/addClass',async(req,res)=>{
       let body=req.body
       if(!body.role){
@@ -39,6 +86,7 @@ async function run() {
       const result=await classCollection.insertOne(body)
       res.send(result)
     })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
