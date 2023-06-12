@@ -10,7 +10,21 @@ app.use(cors());
 app.use(express.json());
 
 
+const verifyJWT=(req,res,next)=>{
+  const authorization=req.headers.authorization
+  if(!authorization){
+    return res.status(401).send({error:true,message:"Unauthorized access"})
+  }
+  const token=authorization.split(' ')[1]
+  jwt.verify(token,process.env.SECRETE_KEY,(error,decode)=>{
+    if(error){
+      return res.status(401).send({error:true,message:"unauthorized access"})
+    }
+    req.decode=decode
+    next()
+  })
 
+}
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
@@ -103,8 +117,12 @@ async function run() {
       const result=await UserCollection.find().toArray()
       res.send(result)
     })
-    app.get('/users/:email',async(req,res)=>{
+    app.get('/users/:email',verifyJWT,async(req,res)=>{
+      const decodeEmail=req.decode
       const email=req.params.email
+      if(!decodeEmail===email){
+        return res.status(403).send({error:true,message:"Forbidden Access"})
+      }
       const filter={email:email}
       const result=await UserCollection.findOne(filter)
       res.send(result)
