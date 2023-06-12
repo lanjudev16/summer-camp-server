@@ -29,6 +29,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const classCollection = client.db("Assignment12").collection("AllClass");
+    const UserCollection = client.db("Assignment12").collection("User");
     //admin dashboard route here
     app.get('/dashboard/admin/manageClass',async(req,res)=>{
       const result=await classCollection.find().toArray()
@@ -74,14 +75,60 @@ async function run() {
       res.send(result)
     })
     //admin user management
-    app.get('/dashboard/admin/manageUser',async(req,res)=>{
+    app.post('/users/:email',async(req,res)=>{
+      const user=req.body
+      const email=req.params.email
+      const filter={email:email}
+      const singleResult=await UserCollection.findOne(filter)
+      if(singleResult){
+        return res.send({error:true,message:"User already exits"})
+      }
+      const result=await UserCollection.insertOne(user)
+      res.send(result)
+    })
+
+    //get user data from data base
+    app.get('/users',async(req,res)=>{
+      const result=await UserCollection.find().toArray()
+      res.send(result)
+    })
+    app.get('/users/:email',async(req,res)=>{
+      const email=req.params.email
+      const filter={email:email}
+      const result=await UserCollection.findOne(filter)
+      res.send(result)
+      console.log(result)
+    })
+    //admin role section
+    app.put('/dashboard/admin/userRole/admin/:id',async(req,res)=>{
+      const id=req.params.id
+      const filter={_id:new ObjectId(id)}
+      const updateDoc={
+        $set:{
+          UserRole:'admin'
+        }
+      }
+      const result=await UserCollection.updateOne(filter,updateDoc)
+      res.send(result)
+    })
+    //add instructor role
+    app.put('/dashboard/admin/userRole/instructor/:id',async(req,res)=>{
+      const id=req.params.id
+      const filter={_id:new ObjectId(id)}
+      const updateDoc={
+        $set:{
+          UserRole:'instructor'
+        }
+      }
+      const result=await UserCollection.updateOne(filter,updateDoc)
+      res.send(result)
     })
     // instructor dashboard route here
     app.post('/dashboard/instructor/addClass',async(req,res)=>{
       let body=req.body
       if(!body.role){
         body.role='instructor'
-        body.totalEnroll=''
+        body.totalEnroll=0
       }
       const result=await classCollection.insertOne(body)
       res.send(result)
