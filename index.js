@@ -54,6 +54,11 @@ async function run() {
       res.send({token})
     })
 
+    //get all classes
+    app.get('/classes',async(req,res)=>{
+      const result=await classCollection.find().toArray()
+      res.send(result)
+    })
 
     //admin dashboard route here
     app.get('/dashboard/admin/manageClass',async(req,res)=>{
@@ -113,16 +118,12 @@ async function run() {
     })
 
     //get user data from data base
-    app.get('/users',async(req,res)=>{
+    app.get('/users',verifyJWT,async(req,res)=>{
       const result=await UserCollection.find().toArray()
       res.send(result)
     })
-    app.get('/users/:email',verifyJWT,async(req,res)=>{
-      const decodeEmail=req.decode
+    app.get('/users/:email',async(req,res)=>{
       const email=req.params.email
-      if(!decodeEmail===email){
-        return res.status(403).send({error:true,message:"Forbidden Access"})
-      }
       const filter={email:email}
       const result=await UserCollection.findOne(filter)
       res.send(result)
