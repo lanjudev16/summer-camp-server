@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const jwt =require('jsonwebtoken')
 require('dotenv').config()
 const port = process.env.PORT || 5000;
 
@@ -30,6 +31,16 @@ async function run() {
     await client.connect();
     const classCollection = client.db("Assignment12").collection("AllClass");
     const UserCollection = client.db("Assignment12").collection("User");
+
+
+    //jwt implement
+    app.post('/jwt',(req,res)=>{
+      const body=req.body
+      const token = jwt.sign(body,process.env.SECRETE_KEY,{expiresIn:'1h'})
+      res.send({token})
+    })
+
+
     //admin dashboard route here
     app.get('/dashboard/admin/manageClass',async(req,res)=>{
       const result=await classCollection.find().toArray()
@@ -97,7 +108,6 @@ async function run() {
       const filter={email:email}
       const result=await UserCollection.findOne(filter)
       res.send(result)
-      console.log(result)
     })
     //admin role section
     app.put('/dashboard/admin/userRole/admin/:id',async(req,res)=>{
