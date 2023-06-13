@@ -4,7 +4,7 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
-
+const stripe = require("stripe")(process.env.STIPE_SK);
 // middleware
 app.use(cors());
 app.use(express.json());
@@ -182,17 +182,34 @@ async function run() {
       }
       const result=await bookingCollection.find(filter).toArray()
       res.send(result)
-      console.log(result)
     })
     //student booking
     app.get("/dashboard/student/booking/:email", async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
       const result = await classCollection.findOne(filter);
-      console.log(result);
       res.send(result);
     });
-    
+    //payment intent
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const { Price } = req.body;
+      const amount = parseInt(Price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
+    app.get('/paymentData/:id',async(req,res)=>{
+      const id=req.params.id
+      const filter={_id:new ObjectId(id)}
+      const result=await bookingCollection.findOne(filter)
+      res.send(result)
+    })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -206,5 +223,5 @@ async function run() {
 run().catch(console.dir);
 
 app.listen(port, () => {
-  console.log(`Bistro boss is sitting on port ${port}`);
+  console.log(`Assignment server running ${port}`);
 });
