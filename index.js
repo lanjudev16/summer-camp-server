@@ -175,6 +175,12 @@ async function run() {
       const result = await classCollection.insertOne(body);
       res.send(result);
     });
+    //top instructor
+    app.get("/topInstructor", async (req, res) => {
+      const filter = { UserRole: "instructor" };
+      const result = await UserCollection.find(filter).toArray();
+      res.send(result);
+    });
     // student route
     app.post("/isBooking", async (req, res) => {
       const id = req.query.id;
@@ -196,6 +202,11 @@ async function run() {
       const email = req.params.email;
       const filter = { email: email };
       const result = await classCollection.findOne(filter);
+      res.send(result);
+    });
+    app.get('/enrollClass/:email', async (req, res) => {
+      const email = req.params.email;
+      const result = await PaymentCollection.find({email: email }).toArray();
       res.send(result);
     });
     //payment intent
@@ -223,14 +234,14 @@ async function run() {
       const body=req.body
       const result=await PaymentCollection.insertOne(body)
       const query={
-        _id:new ObjectId(body.id)
+        _id:new ObjectId(body?.id)
       }
       const id=body.paymentData.id
       const queryReduce={_id:new ObjectId(id)}
       const remove=await bookingCollection.deleteOne(query)
       const getSeats=await classCollection.findOne(queryReduce)
-      const totalEnroll=parseInt(getSeats.totalEnroll)
-      const AvailableSeats= parseInt(getSeats.AvailableSeats)
+      const totalEnroll=parseInt(getSeats?.totalEnroll)
+      const AvailableSeats= parseInt(getSeats?.AvailableSeats)
       const updateDoc={
         $set:{
           AvailableSeats:(AvailableSeats-1),
