@@ -48,6 +48,7 @@ async function run() {
     const classCollection = client.db("Assignment12").collection("AllClass");
     const UserCollection = client.db("Assignment12").collection("User");
     const bookingCollection = client.db("Assignment12").collection("booking");
+    const PaymentCollection = client.db("Assignment12").collection("payment");
 
     //jwt implement
     app.post("/jwt", (req, res) => {
@@ -172,7 +173,7 @@ async function run() {
       const id = req.query.id;
       const email = req.query.email;
       const body=req.body
-      const result = await bookingCollection.insertOne({body,email});
+      const result = await bookingCollection.insertOne({body,email,id});
       res.send(result);
     });
     app.get('/isBooking/:email',async(req,res)=>{
@@ -209,6 +210,32 @@ async function run() {
       const filter={_id:new ObjectId(id)}
       const result=await bookingCollection.findOne(filter)
       res.send(result)
+    })
+    //payment related api
+    app.post('/dashboard/student/payment',async(req,res)=>{
+      const body=req.body
+      const result=await PaymentCollection.insertOne(body)
+      const query={
+        _id:new ObjectId(body.id)
+      }
+      const id=body.paymentData.id
+      const queryReduce={_id:new ObjectId(id)}
+      const remove=await bookingCollection.deleteOne(query)
+      const getSeats=await classCollection.findOne(queryReduce)
+      const AvailableSeats= parseInt(getSeats.AvailableSeats)
+      const updateDoc={
+        $set:{
+          AvailableSeats:(AvailableSeats-1)
+        }
+      }
+      const updateSeats=await classCollection.updateOne(queryReduce,updateDoc)
+      res.send(result)
+    })
+    app.get('/dashboard/student/payment/:id',async(req,res)=>{
+      const id=req.params.id
+      const filter={id:(id).toString}
+      const result=await PaymentCollection.findOne(filter)
+      
     })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
