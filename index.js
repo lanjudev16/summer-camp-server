@@ -61,10 +61,17 @@ async function run() {
 
     //get all classes
     app.get("/classes", async (req, res) => {
-      const result = await classCollection.find().toArray();
+      const filter={status:"approved"}
+      const result = await classCollection.find(filter).toArray();
       res.send(result);
     });
 
+    //get popular class
+    app.get('/popularClass',async(req,res)=>{
+      const filter={totalEnroll:1}
+      const result = await classCollection.find().sort({totalEnroll:parseInt(1)}).toArray();
+      res.send(result);
+    })
     //admin dashboard route here
     app.get("/dashboard/admin/manageClass", async (req, res) => {
       const result = await classCollection.find().toArray();
@@ -222,10 +229,12 @@ async function run() {
       const queryReduce={_id:new ObjectId(id)}
       const remove=await bookingCollection.deleteOne(query)
       const getSeats=await classCollection.findOne(queryReduce)
+      const totalEnroll=parseInt(getSeats.totalEnroll)
       const AvailableSeats= parseInt(getSeats.AvailableSeats)
       const updateDoc={
         $set:{
-          AvailableSeats:(AvailableSeats-1)
+          AvailableSeats:(AvailableSeats-1),
+          totalEnroll:(totalEnroll+1)
         }
       }
       const updateSeats=await classCollection.updateOne(queryReduce,updateDoc)
