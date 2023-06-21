@@ -59,6 +59,14 @@ async function run() {
       res.send({ token });
     });
 
+    //valid user
+    app.get('/isUserValid/:email',verifyJWT,async(req,res)=>{
+      const email=req.params.email
+      const decodedEmail=req.decode.email
+      if(email===decodedEmail){
+        return res.send({isValid:true})
+      }
+    })
     //get all classes
     app.get("/classes", async (req, res) => {
       const filter={status:"approved"}
@@ -132,6 +140,10 @@ async function run() {
 
     //get user data from data base
     app.get("/users", verifyJWT, async (req, res) => {
+      const result = await UserCollection.find({UserRole:"instructor"}).toArray();
+      res.send(result);
+    });
+    app.get("/users/admin", verifyJWT, async (req, res) => {
       const result = await UserCollection.find().toArray();
       res.send(result);
     });
@@ -165,6 +177,7 @@ async function run() {
       const result = await UserCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
+
     // instructor dashboard route here
     app.post("/dashboard/instructor/addClass", async (req, res) => {
       let body = req.body;
@@ -181,6 +194,12 @@ async function run() {
       const result = await UserCollection.find(filter).toArray();
       res.send(result);
     });
+    app.get('/instructorAllClasses/:email',async(req,res)=>{
+      const email=req.params.email
+      const filter={InstructorEmail:email}
+      const result=await classCollection.find(filter).toArray()
+      res.send(result)
+    })
     // student route
     app.post("/isBooking", async (req, res) => {
       const id = req.query.id;
@@ -209,10 +228,19 @@ async function run() {
       const result = await PaymentCollection.find({email: email }).toArray();
       res.send(result);
     });
+    //booking delete
+    app.delete('/bookingDelete/:id',async(req,res)=>{
+      const id=req.params.id
+      const query={
+        _id:new ObjectId(id)
+      }
+      const result=await bookingCollection.deleteOne(query)
+    })
     //payment intent
     app.post('/create-payment-intent', verifyJWT, async (req, res) => {
       const { Price } = req.body;
-      const amount = parseInt(Price * 100);
+      const amount = parseInt(Price * 100) ;
+      
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
         currency: 'usd',
@@ -232,16 +260,22 @@ async function run() {
     //payment related api
     app.post('/dashboard/student/payment',async(req,res)=>{
       const body=req.body
-      const result=await PaymentCollection.insertOne(body)
-      const query={
-        _id:new ObjectId(body?.id)
-      }
       const id=body.paymentData.id
       const queryReduce={_id:new ObjectId(id)}
-      const remove=await bookingCollection.deleteOne(query)
       const getSeats=await classCollection.findOne(queryReduce)
       const totalEnroll=parseInt(getSeats?.totalEnroll)
       const AvailableSeats= parseInt(getSeats?.AvailableSeats)
+      const paymentBodyData={
+        body,
+        AvailableSeats:AvailableSeats-1,
+        totalEnroll:totalEnroll+1,
+        email:body.email
+      }
+      const result=await PaymentCollection.insertOne(paymentBodyData)
+      const query={
+        _id:new ObjectId(body?.id)
+      }
+      const remove=await bookingCollection.deleteOne(query)
       const updateDoc={
         $set:{
           AvailableSeats:(AvailableSeats-1),
